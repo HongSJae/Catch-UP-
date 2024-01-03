@@ -1,9 +1,8 @@
 import Foundation
 import Moya
 
-#if DEBUG
 // swiftlint: disable line_length
-public final class MoyaLogginPlugin: PluginType {
+public final class MoyaLoggingPlugin: PluginType {
     public init() {}
     public func willSend(_ request: RequestType, target: TargetType) {
         guard let httpRequest = request.request else {
@@ -63,5 +62,3 @@ public final class MoyaLogginPlugin: PluginType {
     }
 }
 // swiftlint: enable line_length
-
-#endif
