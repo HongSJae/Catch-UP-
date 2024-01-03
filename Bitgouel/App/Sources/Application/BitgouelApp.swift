@@ -1,10 +1,14 @@
 import SwiftUI
+import Service
 
 @main
 struct BitgouelApp: App {
+    init() {
+        registerProviderFactories()
+    }
     var body: some Scene {
         WindowGroup {
-            Text("Test")
+            AppComponent().makeRootView()
         }
     }
 }
