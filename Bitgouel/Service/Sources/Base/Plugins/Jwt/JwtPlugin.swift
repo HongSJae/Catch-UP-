@@ -17,6 +17,7 @@ public struct JwtPlugin: PluginType {
         else { return request }
         var req = request
         let token = "\(getToken(type: jwtTokenType == .accessToken ? .accessToken : .refreshToken))"
+        print(token)
 
         req.addValue(token, forHTTPHeaderField: jwtTokenType.rawValue)
         return req
@@ -30,6 +31,7 @@ public struct JwtPlugin: PluginType {
         case let .success(res):
             if let new = try? res.map(TokenDTO.self) {
                 saveToken(token: new)
+                print(new)
             }
         default:
             break
@@ -57,7 +59,7 @@ private extension JwtPlugin {
     func saveToken(token: TokenDTO) {
         keychain.save(type: .accessToken, value: token.accessToken)
         keychain.save(type: .refreshToken, value: token.refreshToken)
-        keychain.save(type: .accessExpiredAt, value: token.accessExpiredAt)
-        keychain.save(type: .refreshExpiredAt, value: token.refreshExpiredAt)
+        keychain.save(type: .accessExpiredAt, value: token.accessExpiresAt)
+        keychain.save(type: .refreshExpiredAt, value: token.refreshExpiresAt)
     }
 }

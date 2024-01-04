@@ -3,13 +3,13 @@ import Foundation
 struct TokenDTO: Equatable, Decodable {
     let accessToken: String
     let refreshToken: String
-    let accessExpiredAt: String
-    let refreshExpiredAt: String
+    let accessExpiresAt: String
+    let refreshExpiresAt: String
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
-        case accessExpiredAt = "access_expired_at"
-        case refreshExpiredAt = "refresh_expired_at"
+        case accessExpiresAt = "access_expires_at"
+        case refreshExpiresAt = "refresh_expires_at"
     }
 }

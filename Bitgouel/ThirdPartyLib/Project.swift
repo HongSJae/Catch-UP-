@@ -7,7 +7,8 @@ let project = Project.dynamicFramework(
     deploymentTarget: .iOS(targetVersion: "15.9", devices: .iphone),
     dependencies: [
         .SPM.Moya,
-        .SPM.NeedleFoundation
+        .SPM.NeedleFoundation,
+        .SPM.KeychainSwift
     ],
     scripts: [.SwiftLintString]
 )
