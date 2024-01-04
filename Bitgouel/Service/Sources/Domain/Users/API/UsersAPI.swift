@@ -2,7 +2,7 @@ import Foundation
 import Moya
 
 public enum UsersAPI {
-    case login(id: String, password: String)
+    case login(LoginRequestDTO)
 }
 
 extension UsersAPI: JobisAPI {
@@ -28,12 +28,8 @@ extension UsersAPI: JobisAPI {
 
     public var task: Moya.Task {
         switch self {
-        case let .login(id, password):
-            return .requestParameters(parameters: [
-                "account_id": id,
-                "password": password,
-                "platform_type": "IOS"
-            ], encoding: URLEncoding.httpBody)
+        case let .login(req):
+            return .requestJSONEncodable(req)
         }
     }
 
