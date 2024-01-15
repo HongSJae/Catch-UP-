@@ -64,6 +64,7 @@ func registerModuleDependency() {
         targetString += ",\n\(tab(2)).demo(module: \(moduleEnum), dependencies: [\n\(tab(3)).\(layerPrefix)(target: .\(moduleName))\n\(tab(2))])"
     }
     targetString += "\n\(tab(1))]"
+    print(targetString)
     makeProjectSwift(targetString: targetString)
     makeProjectScaffold(targetString: targetString)
 }
@@ -71,7 +72,7 @@ func registerModuleDependency() {
 func tab(_ count: Int) -> String {
     var tabString = ""
     for _ in 0..<count {
-        tabString += "\t\t"
+        tabString += "\t"
     }
     return tabString
 }
