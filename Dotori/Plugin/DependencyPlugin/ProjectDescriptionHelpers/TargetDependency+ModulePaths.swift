@@ -4,7 +4,7 @@ import ProjectDescription
 public extension TargetDependency {
     static func feature(
         target: ModulePaths.Feature,
-        type: MicroTargetType = .source
+        type: MicroTargetType = .sources
     ) -> Self {
         .project(
             target: target.targetName(type: type),
@@ -14,7 +14,7 @@ public extension TargetDependency {
 
     static func domain(
         target: ModulePaths.Domain,
-        type: MicroTargetType = .source
+        type: MicroTargetType = .sources
     ) -> Self {
         .project(
             target: target.targetName(type: type),
@@ -24,7 +24,7 @@ public extension TargetDependency {
 
     static func core(
         target: ModulePaths.Core,
-        type: MicroTargetType = .source
+        type: MicroTargetType = .sources
     ) -> Self {
         .project(
             target: target.targetName(type: type),
@@ -34,7 +34,7 @@ public extension TargetDependency {
 
     static func shared(
         target: ModulePaths.Shared,
-        type: MicroTargetType = .source
+        type: MicroTargetType = .sources
     ) -> Self {
         .project(
             target: target.targetName(type: type),
@@ -44,7 +44,7 @@ public extension TargetDependency {
 
     static func userInterface(
         target: ModulePaths.UserInterface,
-        type: MicroTargetType = .source
+        type: MicroTargetType = .sources
     ) -> Self {
         .project(
             target: target.targetName(type: type),
