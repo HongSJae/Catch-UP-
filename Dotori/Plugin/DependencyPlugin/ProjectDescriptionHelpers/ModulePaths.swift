@@ -54,7 +54,7 @@ public extension ModulePaths {
 
 public enum MicroTargetType: String {
     case interface = "Interface"
-    case source = ""
+    case sources = ""
     case testing = "Testing"
     case unitTest = "Tests"
     case demo = "Demo"
