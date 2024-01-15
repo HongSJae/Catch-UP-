@@ -1,76 +1,230 @@
+import ConfigurationPlugin
+import DependencyPlugin
+import EnvironmentPlugin
+import Foundation
 import ProjectDescription
 
-/// Project helpers are functions that simplify the way you define your project.
-/// Share code to create targets, settings, dependencies,
-/// Create your own conventions, e.g: a func that makes sure all shared targets are "static frameworks"
-/// See https://docs.tuist.io/guides/helpers/
+let isCI = (ProcessInfo.processInfo.environment["TUIST_CI"] ?? "0") == "1" ? true : false
 
-extension Project {
-    /// Helper function to create the Project for this ExampleApp
-    public static func app(name: String, platform: Platform, additionalTargets: [String]) -> Project {
-        var targets = makeAppTargets(name: name,
-                                     platform: platform,
-                                     dependencies: additionalTargets.map { TargetDependency.target(name: $0) })
-        targets += additionalTargets.flatMap({ makeFrameworkTargets(name: $0, platform: platform) })
-        return Project(name: name,
-                       organizationName: "tuist.io",
-                       targets: targets)
-    }
+public enum MicroFeatureTarget {
+    case interface
+    case testing
+    case unitTest
+    case uiTest
+    case demo
+}
 
-    // MARK: - Private
+public extension Project {
+    static func makeModule(
+        name: String,
+        platform: Platform = env.platform,
+        product: Product,
+        targets: Set<MicroFeatureTarget>,
+        packages: [Package] = [],
+        externalDependencies: [TargetDependency] = [],
+        internalDependencies: [TargetDependency] = [],
+        interfaceDependencies: [TargetDependency] = [],
+        testingDependencies: [TargetDependency] = [],
+        unitTestDependencies: [TargetDependency] = [],
+        uiTestDependencies: [TargetDependency] = [],
+        demoDependencies: [TargetDependency] = [],
+        sources: SourceFilesList = .sources,
+        resources: ResourceFileElements? = nil,
+        settings: SettingsDictionary = [:],
+        additionalPlistRows: [String: ProjectDescription.InfoPlist.Value] = [:],
+        additionalFiles: [FileElement] = [],
+        configurations: [Configuration] = [],
+        resourceSynthesizers: [ResourceSynthesizer] = .default
+    ) -> Project {
+        let scripts: [TargetScript] = isCI ? [] : [.swiftLint]
+        let ldFlagsSettings: SettingsDictionary = product == .framework ? .allLoadLDFlages: .ldFlages
 
-    /// Helper function to create a framework target and an associated unit test target
-    private static func makeFrameworkTargets(name: String, platform: Platform) -> [Target] {
-        let sources = Target(name: name,
+        var configurations = configurations
+        if configurations.isEmpty {
+            configurations = .default
+        }
+
+        let settings: Settings = .settings(
+            base: env.baseSetting
+                .merging(.codeSign)
+                .merging(settings)
+                .merging(ldFlagsSettings),
+            configurations: configurations,
+            defaultSettings: .recommended
+        )
+        var allTargets: [Target] = []
+        var dependencies = internalDependencies + externalDependencies
+
+        // MARK: - Interface
+        if targets.contains(.interface) {
+            dependencies.append(.target(name: "\(name)Interface"))
+            allTargets.append(
+                Target(
+                    name: "\(name)Interface",
+                    platform: platform,
+                    product: .framework,
+                    bundleId: "\(env.organizationName).\(name)Interface",
+                    deploymentTarget: env.deploymentTarget,
+                    infoPlist: .default,
+                    sources: .interface,
+                    scripts: scripts,
+                    dependencies: interfaceDependencies,
+                    additionalFiles: additionalFiles
+                )
+            )
+        }
+
+        // MARK: - Sources
+        allTargets.append(
+            Target(
+                name: name,
                 platform: platform,
-                product: .framework,
-                bundleId: "io.tuist.\(name)",
-                infoPlist: .default,
-                sources: ["Targets/\(name)/Sources/**"],
-                resources: [],
-                dependencies: [])
-        let tests = Target(name: "\(name)Tests",
-                platform: platform,
-                product: .unitTests,
-                bundleId: "io.tuist.\(name)Tests",
-                infoPlist: .default,
-                sources: ["Targets/\(name)/Tests/**"],
-                resources: [],
-                dependencies: [.target(name: name)])
-        return [sources, tests]
-    }
-
-    /// Helper function to create the application target and the unit test target.
-    private static func makeAppTargets(name: String, platform: Platform, dependencies: [TargetDependency]) -> [Target] {
-        let platform: Platform = platform
-        let infoPlist: [String: InfoPlist.Value] = [
-            "CFBundleShortVersionString": "1.0",
-            "CFBundleVersion": "1",
-"UIMainStoryboardFile": "",
-            "UILaunchStoryboardName": "LaunchScreen"
-            ]
-
-        let mainTarget = Target(
-            name: name,
-            platform: platform,
-            product: .app,
-            bundleId: "io.tuist.\(name)",
-            infoPlist: .extendingDefault(with: infoPlist),
-            sources: ["Targets/\(name)/Sources/**"],
-            resources: ["Targets/\(name)/Resources/**"],
-            dependencies: dependencies
+                product: product,
+                bundleId: "\(env.organizationName).\(name)",
+                deploymentTarget: env.deploymentTarget,
+                infoPlist: .extendingDefault(with: additionalPlistRows),
+                sources: sources,
+                resources: resources,
+                scripts: scripts,
+                dependencies: dependencies
+            )
         )
 
-        let testTarget = Target(
-            name: "\(name)Tests",
-            platform: platform,
-            product: .unitTests,
-            bundleId: "io.tuist.\(name)Tests",
-            infoPlist: .default,
-            sources: ["Targets/\(name)/Tests/**"],
-            dependencies: [
-                .target(name: "\(name)")
-        ])
-        return [mainTarget, testTarget]
+        // MARK: - Testing
+        if targets.contains(.testing) && targets.contains(.interface) {
+            allTargets.append(
+                Target(
+                    name: "\(name)Testing",
+                    platform: platform,
+                    product: .framework,
+                    bundleId: "\(env.organizationName).\(name)Testing",
+                    deploymentTarget: env.deploymentTarget,
+                    infoPlist: .default,
+                    sources: .testing,
+                    scripts: scripts,
+                    dependencies: [
+                        .target(name: "\(name)Interface")
+                    ] + testingDependencies
+                )
+            )
+        }
+
+        var testTargetDependencies = [
+            targets.contains(.demo) ?
+                TargetDependency.target(name: "\(name)Demo") :
+                TargetDependency.target(name: name)
+        ]
+        if targets.contains(.testing) {
+            testTargetDependencies.append(.target(name: "\(name)Testing"))
+        }
+
+        // MARK: - Unit Test
+        if targets.contains(.unitTest) {
+            allTargets.append(
+                Target(
+                    name: "\(name)Tests",
+                    platform: platform,
+                    product: .unitTests,
+                    bundleId: "\(env.organizationName).\(name)Tests",
+                    deploymentTarget: env.deploymentTarget,
+                    infoPlist: .default,
+                    sources: .unitTests,
+                    scripts: scripts,
+                    dependencies: testTargetDependencies + unitTestDependencies
+                )
+            )
+        }
+
+        // MARK: - UI Test
+        if targets.contains(.uiTest) {
+            allTargets.append(
+                Target(
+                    name: "\(name)UITests",
+                    platform: platform,
+                    product: .uiTests,
+                    bundleId: "\(env.organizationName).\(name)UITests",
+                    deploymentTarget: env.deploymentTarget,
+                    infoPlist: .default,
+                    scripts: scripts,
+                    dependencies: testTargetDependencies + uiTestDependencies
+                )
+            )
+        }
+
+        // MARK: - Demo App
+        if targets.contains(.demo) {
+            var demoDependencies = demoDependencies
+            demoDependencies.append(.target(name: name))
+            if targets.contains(.testing) {
+                demoDependencies.append(.target(name: "\(name)Testing"))
+            }
+            allTargets.append(
+                Target(
+                    name: "\(name)Demo",
+                    platform: platform,
+                    product: .app,
+                    bundleId: "\(env.organizationName).\(name)Demo",
+                    deploymentTarget: env.deploymentTarget,
+                    infoPlist: .extendingDefault(with: [
+                        "UIMainStoryboardFile": "",
+                        "UILaunchStoryboardName": "LaunchScreen",
+                        "ENABLE_TESTS": .boolean(true),
+                    ]),
+                    sources: .demoSources,
+                    resources: ["Demo/Resources/**"],
+                    scripts: scripts,
+                    dependencies: demoDependencies
+                )
+            )
+        }
+
+        let schemes: [Scheme] = targets.contains(.demo) ?
+        [.makeScheme(target: .dev, name: name), .makeDemoScheme(target: .dev, name: name)] :
+        [.makeScheme(target: .dev, name: name)]
+
+        return Project(
+            name: name,
+            organizationName: env.organizationName,
+            packages: packages,
+            settings: settings,
+            targets: allTargets,
+            schemes: schemes,
+            resourceSynthesizers: resourceSynthesizers
+        )
+    }
+}
+
+extension Scheme {
+    static func makeScheme(target: ConfigurationName, name: String) -> Scheme {
+        return Scheme(
+            name: name,
+            shared: true,
+            buildAction: .buildAction(targets: ["\(name)"]),
+            testAction: .targets(
+                ["\(name)Tests"],
+                configuration: target,
+                options: .options(coverage: true, codeCoverageTargets: ["\(name)"])
+            ),
+            runAction: .runAction(configuration: target),
+            archiveAction: .archiveAction(configuration: target),
+            profileAction: .profileAction(configuration: target),
+            analyzeAction: .analyzeAction(configuration: target)
+        )
+    }
+    static func makeDemoScheme(target: ConfigurationName, name: String) -> Scheme {
+        return Scheme(
+            name: name,
+            shared: true,
+            buildAction: .buildAction(targets: ["\(name)Demo"]),
+            testAction: .targets(
+                ["\(name)Tests"],
+                configuration: target,
+                options: .options(coverage: true, codeCoverageTargets: ["\(name)Demo"])
+            ),
+            runAction: .runAction(configuration: target),
+            archiveAction: .archiveAction(configuration: target),
+            profileAction: .profileAction(configuration: target),
+            analyzeAction: .analyzeAction(configuration: target)
+        )
     }
 }
