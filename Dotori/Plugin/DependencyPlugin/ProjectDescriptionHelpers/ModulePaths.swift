@@ -24,18 +24,19 @@ public extension ModulePaths {
 
 public extension ModulePaths {
     enum Feature: String, MicroTargetPathConvertable {
-        case SigninFeature
+        case BaseFeature
     }
 }
 
 public extension ModulePaths {
     enum Domain: String, MicroTargetPathConvertable {
-        case UsersDomain
+        case BaseDomain
     }
 }
 
 public extension ModulePaths {
     enum Core: String, MicroTargetPathConvertable {
+        case Networking
         case JwtStore
     }
 }
@@ -69,3 +70,7 @@ public extension MicroTargetPathConvertable where Self: RawRepresentable {
         "\(self.rawValue)\(type.rawValue)"
     }
 }
+
+// MARK: - For DI
+extension ModulePaths.Feature: CaseIterable {}
+extension ModulePaths.Domain: CaseIterable {}

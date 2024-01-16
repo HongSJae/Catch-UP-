@@ -5,16 +5,12 @@ import DependencyPlugin
 import EnvironmentPlugin
 import Foundation
 
-let isCI = (ProcessInfo.processInfo.environment["TUIST_CI"] ?? "0") == "1" ? true : false
-
 let configurations: [Configuration] = .default
 
 let settings: Settings =
     .settings(base: env.baseSetting,
               configurations: configurations,
               defaultSettings: .recommended)
-
-let scripts: [TargetScript] = isCI ? [] : [.swiftLint]
 
 let targets: [Target] = [
     .init(
@@ -24,14 +20,19 @@ let targets: [Target] = [
         bundleId: "\(env.organizationName).\(env.name)",
         deploymentTarget: env.deploymentTarget,
         infoPlist: .file(path: "Support/Info.plist"),
-        sources: .sources,
+        sources: ["Sources/**"],
         resources: ["Resources/**"],
-        scripts: scripts,
-        dependencies: [
+        entitlements: "Support/Dotori.entitlements",
+        scripts: generateEnvironment.scripts,
+        dependencies: ModulePaths.Feature.allCases.map { TargetDependency.feature(target: $0) }
+        + ModulePaths.Domain.allCases.map { TargetDependency.domain(target: $0) }
+        + [
+            .core(target: .JwtStore),
+            .core(target: .Networking)
+//            .target(name: "\(env.name)ShareExtension")
         ],
         settings: .settings(
             base: env.baseSetting
-                .merging(.codeSign)
         )
     )
 ]

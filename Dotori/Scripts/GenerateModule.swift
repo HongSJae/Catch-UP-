@@ -33,7 +33,7 @@ func registerModuleDependency() {
     makeProjectDirectory()
     registerXCConfig()
 
-    let layerPrefix = layer.rawValue.lowercased()
+    let layerPrefix = layer.rawValue.lowerCamelCase()
     let moduleEnum = ".\(layerPrefix)(.\(moduleName))"
     var targetString = "[\n"
     if hasInterface {
@@ -175,6 +175,15 @@ func updateFileContent(
     try? writeHandle.close()
 }
 
+extension Character {
+    func lowerCamelCase() -> String {
+        let components = self.components(separatedBy: CharacterSet.alphanumerics.inverted)
+        let joined = components.joined()
+        let first = joined.prefix(1).lowercased()
+        let rest = joined.dropFirst()
+        return first + rest
+    }
+}
 
 // MARK: - Starting point
 
@@ -201,7 +210,7 @@ var moduleName = moduleNameUnwrapping
 print("Module name: \(moduleName)\n")
 
 print("This module has a 'Interface' Target? (y\\n, default = n)", terminator: " : ")
-let hasInterface = readLine()?.lowercased() == "y"
+let hasInterface = readLine()?.lowerCamelCase() == "y"
 
 print("This module has a 'Testing' Target? (y\\n, default = n)", terminator: " : ")
 let hasTesting = readLine()?.lowercased() == "y"

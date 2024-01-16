@@ -9,8 +9,8 @@ let dependencies = Dependencies(
                 requirement: .upToNextMajor(from: "15.0.3")
             ),
             .remote(
-                url: "https://github.com/uber/needle.git",
-                requirement: .upToNextMajor(from: "0.24.0")
+                url: "https://github.com/Swinject/Swinject.git",
+                requirement: .exact("2.8.3")
             ),
             .remote(
                 url: "https://github.com/evgenyneu/keychain-swift",
